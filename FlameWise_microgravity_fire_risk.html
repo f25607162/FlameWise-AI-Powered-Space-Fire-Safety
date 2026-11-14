@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FlameWise: microgravity fire risk dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=Orbitron:wght@700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f3f5fb;--sf:#fff;--ln:#cfd6e8;--tx:#141a33;--mu:#4f5a7d;--blue:#0b6ba8;--amber:#a85a00;--on:#fff;--hv:#e8edf8;
+ --hd:"Bricolage Grotesque",Georgia,serif;--bd:"IBM Plex Sans",system-ui,sans-serif;
+ box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d1224;--sf:#151b33;--ln:#2a3358;--tx:#e8ecf8;--mu:#a3adcf;--blue:#5cc8ff;--amber:#ffb347;--on:#08101f;--hv:#1d2547;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0d1224;--sf:#151b33;--ln:#2a3358;--tx:#e8ecf8;--mu:#a3adcf;--blue:#5cc8ff;--amber:#ffb347;--on:#08101f;--hv:#1d2547;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--tx);font:400 16px/1.55 var(--bd)}
+h1,h2{font-family:var(--hd);margin:0;line-height:1.15}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 16px 48px}
+header{display:flex;gap:16px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+h1{font-size:clamp(28px,5vw,42px);display:flex;align-items:center;gap:10px;font-weight:700}
+header p{margin:6px 0 0;color:var(--mu);max-width:56ch}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+h1 .ic{width:34px;height:34px;color:var(--blue)}
+button,select,input{font:inherit;color:inherit}
+.btn{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 14px;border:1px solid var(--ln);background:var(--sf);border-radius:10px;cursor:pointer;transition:background-color .2s,border-color .2s,transform .2s}
+.btn:hover{background:var(--hv);border-color:var(--blue)}
+.btn.pri{background:var(--blue);color:var(--on);border-color:var(--blue);font-weight:600}
+.btn.pri:hover{filter:brightness(1.1)}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.note{margin:18px 0;padding:10px 14px;border-left:4px solid var(--amber);background:var(--sf);color:var(--mu);font-size:14px;border-radius:0 8px 8px 0}
+.panel{background:var(--sf);border:1px solid var(--ln);border-radius:14px;padding:18px}
+h2{font-size:22px;display:flex;align-items:center;gap:8px;margin-bottom:12px}
+h2 .ic{color:var(--blue)}
+.controls{display:grid;gap:18px;grid-template-columns:1fr;align-items:center}
+.orb{display:flex;align-items:center;gap:14px}
+.orb svg{width:96px;height:96px;flex:none}
+.orb p{margin:0;font-size:15px}.orb b{font-family:var(--hd);font-size:20px;display:block}
+.sl{display:grid;gap:4px;font-size:14px}
+.sl span{display:flex;justify-content:space-between;color:var(--mu)}.sl output{color:var(--tx);font-weight:600;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--blue);cursor:pointer;min-height:28px}
+.grid{display:grid;gap:18px;margin-top:18px;grid-template-columns:1fr}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:15px;font-variant-numeric:tabular-nums}
+th,td{padding:10px 8px;border-bottom:1px solid var(--ln);text-align:left;white-space:nowrap}
+th{font-weight:600;color:var(--mu);font-size:13px}
+td.n{color:var(--mu)}
+.rowbtn{background:none;border:0;padding:6px 4px;cursor:pointer;text-align:left;border-radius:6px;min-height:36px;transition:background-color .2s}
+.rowbtn:hover{background:var(--hv)}
+tr.sel .rowbtn{font-weight:600;color:var(--blue)}
+.bar{display:inline-block;width:90px;height:8px;background:var(--hv);border-radius:4px;vertical-align:middle;margin-right:8px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--amber);transition:width .25s}
+.tag{font-size:12px;border:1px solid var(--ln);border-radius:20px;padding:1px 8px;color:var(--mu);margin-left:6px}
+.tag.w{border-color:var(--amber);color:var(--amber)}
+.wts{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-top:14px}
+.pick{display:grid;gap:10px;grid-template-columns:1fr 1fr;margin-bottom:10px}
+.pick label{display:grid;gap:4px;font-size:14px;color:var(--mu)}
+select,input[type=text]{min-height:44px;padding:0 10px;border:1px solid var(--ln);background:var(--bg);border-radius:10px;width:100%;cursor:pointer;transition:border-color .2s}
+input[type=text]{cursor:text}
+select:hover,input[type=text]:hover{border-color:var(--blue)}
+.leg{display:flex;gap:16px;font-size:14px;margin-bottom:6px;flex-wrap:wrap}
+.leg i{display:inline-block;width:24px;height:0;border-top:3px solid var(--blue);vertical-align:middle;margin-right:6px}
+.leg i.b{border-color:var(--amber);border-top-style:dashed}
+svg.ch{width:100%;height:auto;display:block}
+.tx{fill:var(--mu);font-size:12px;font-family:var(--bd)}
+.gl{stroke:var(--ln);stroke-width:1}.gl.d{stroke-dasharray:3 4}
+.ln{fill:none;stroke-width:3;stroke-linejoin:round}.ln.a{stroke:var(--blue)}.ln.b{stroke:var(--amber);stroke-dasharray:7 5}
+.mk{stroke:var(--tx);stroke-width:1.5;stroke-dasharray:2 3}
+.ask{display:flex;gap:10px;flex-wrap:wrap}
+.ask input{flex:1 1 220px;width:auto}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.chips .btn{min-height:40px;font-size:14px}
+#ans{margin:0;padding:14px;background:var(--bg);border:1px solid var(--ln);border-radius:10px;min-height:64px}
+.cmp td:first-child{color:var(--mu)}
+@media (min-width:768px){.controls{grid-template-columns:auto 1fr 1fr 1fr}.wrap{padding:28px 28px 64px}}
+@media (min-width:1024px){.grid.two{grid-template-columns:1.05fr 1fr}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+
+:root:not([data-theme="light"]){--bg:#050816;--sf:rgba(12,18,48,.74);--ln:rgba(77,240,255,.3);--tx:#e8ecf8;--mu:#aab5da;--blue:#4df0ff;--amber:#ffb454;--on:#04101a;--hv:rgba(77,240,255,.12);color-scheme:dark}
+:root[data-theme="light"]{--bg:#eef2fa;--sf:rgba(255,255,255,.84);--ln:#c6cee6;--tx:#141a33;--mu:#4a5578;--blue:#0b6ba8;--amber:#9a5200;--on:#fff;--hv:#e3e9f7;color-scheme:light}
+body{background:radial-gradient(ellipse at 85% 0%,rgba(120,80,255,.2),transparent 55%),radial-gradient(ellipse at 0% 100%,rgba(77,240,255,.1),transparent 50%),var(--bg);min-height:100vh}
+#space{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.wrap{position:relative;z-index:1}
+h1{font-family:"Orbitron",var(--hd);font-size:clamp(24px,4.5vw,36px);letter-spacing:.02em;text-shadow:0 0 22px rgba(77,240,255,.4)}
+.panel,.kpi,.note{backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.panel{box-shadow:0 0 30px rgba(77,240,255,.1),0 18px 40px rgba(0,0,0,.35);transition:transform .25s,box-shadow .25s}
+.kpis{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin:0 0 18px}
+.kpi{background:var(--sf);border:1px solid var(--ln);border-radius:14px;padding:12px 16px}
+.kpi span{display:block;color:var(--mu);font-size:14px}.kpi b{font-family:var(--hd);font-size:20px;font-weight:700}
+textarea{width:100%;min-height:120px;padding:10px;border:1px solid var(--ln);background:var(--bg);border-radius:10px;resize:vertical;font:inherit;color:inherit;margin:6px 0}
+textarea:hover{border-color:var(--blue)}
+details{margin-top:8px}summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:600;transition:color .2s}summary:hover{color:var(--blue)}
+@media (hover:hover) and (prefers-reduced-motion:no-preference){.panel:hover{transform:perspective(1000px) rotateX(1.2deg) translateY(-3px);box-shadow:0 0 44px rgba(77,240,255,.2),0 26px 50px rgba(0,0,0,.45)}}
+
+.nav{display:flex;gap:8px;overflow-x:auto;margin:16px 0;padding:2px 0 6px}
+.nav a{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 14px;border:1px solid var(--ln);background:var(--sf);border-radius:10px;color:var(--tx);text-decoration:none;white-space:nowrap;cursor:pointer;backdrop-filter:blur(10px);transition:background-color .2s,border-color .2s}
+.nav a:hover{background:var(--hv);border-color:var(--blue)}
+.nav a[aria-current="page"]{background:var(--blue);color:var(--on);border-color:var(--blue);font-weight:600}
+.hero{padding:20px 0 26px}.hero h2{display:block;font-size:clamp(28px,5vw,48px);margin-bottom:12px;max-width:20ch}
+.hero .lead{font-size:18px;max-width:62ch;margin:0 0 10px}
+.tiles{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+.tile{display:flex;flex-direction:column;gap:8px;padding:20px;background:var(--sf);border:1px solid var(--ln);border-radius:14px;color:var(--tx);text-decoration:none;backdrop-filter:blur(10px);cursor:pointer;transition:border-color .2s,background-color .2s,transform .2s}
+.tile:hover{border-color:var(--blue);background:var(--hv);transform:translateY(-3px)}
+.tile .ic{width:28px;height:28px;color:var(--blue)}.tile h3{font-family:var(--hd);font-size:20px;margin:0}.tile p{margin:0;color:var(--mu);font-size:15px}
+.doc{max-width:76ch}.doc h3{font-family:var(--hd);font-size:22px;margin:26px 0 8px}.doc p,.doc li{margin:0 0 10px}.doc ol,.doc ul{padding-left:22px;margin:0}
+</style>
+</head>
+<body>
+<canvas id="space" aria-hidden="true"></canvas>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-flame" viewBox="0 0 24 24"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></symbol>
+<symbol id="i-bars" viewBox="0 0 24 24"><path d="M3 3v18h18M18 17V9M13 17V5M8 17v-3"/></symbol>
+<symbol id="i-swap" viewBox="0 0 24 24"><path d="m8 3-4 4 4 4M4 7h16M16 21l4-4-4-4M20 17H4"/></symbol>
+<symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol>
+<symbol id="i-send" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4zM22 2 11 13"/></symbol>
+<symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></symbol>
+<symbol id="i-doc" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M9 13h6M9 17h6"/></symbol>
+<symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+<symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10"/></symbol>
+</svg>
+<div class="wrap">
+<header>
+ <div>
+  <h1><svg class="ic" aria-hidden="true"><use href="#i-flame"/></svg>FlameWise</h1>
+  <p>See which materials burn fastest in microgravity, and what changes when you adjust the air.</p>
+ </div>
+ <button class="btn" id="theme" type="button"><svg class="ic" aria-hidden="true"><use id="tic" href="#i-moon"/></svg><span id="tlab">Dark mode</span></button>
+</header>
+<nav class="nav" id="nav" aria-label="Project pages"><a href="#overview" data-p="overview"><svg class="ic" aria-hidden="true"><use href="#i-home"/></svg>Overview</a><a href="#solution" data-p="solution"><svg class="ic" aria-hidden="true"><use href="#i-doc"/></svg>Solution</a><a href="#dashboard" data-p="dashboard"><svg class="ic" aria-hidden="true"><use href="#i-flame"/></svg>Dashboard</a><a href="#ask" data-p="ask"><svg class="ic" aria-hidden="true"><use href="#i-chat"/></svg>Ask FlameWise</a><a href="#data" data-p="data"><svg class="ic" aria-hidden="true"><use href="#i-db"/></svg>Your data</a></nav>
+<p class="note" id="nt">Prototype. The sample figures here are placeholders so you can test the interface. They are not NASA measurements. Swap in records from the NASA Physical Sciences Informatics repository before drawing conclusions.</p>
+
+<main id="main">
+<section class="page" id="p-overview" hidden>
+ <div class="hero"><h2>Fire without gravity, explained in a minute</h2>
+ <p class="lead">On Earth, fire rises. In space it doesn’t, and that changes how we keep crews safe. FlameWise turns decades of NASA microgravity combustion experiments into a ranked, searchable, explainable view of fire risk.</p>
+ <p class="mu">Team Apollo Orbit, NASA Space Apps 2026. Challenge: Flame in Freefall.</p></div>
+ <div class="tiles"><a class="tile" href="#solution"><svg class="ic" aria-hidden="true"><use href="#i-doc"/></svg><h3>Solution</h3><p>The full write-up: problem, approach, limits and next steps.</p></a><a class="tile" href="#dashboard"><svg class="ic" aria-hidden="true"><use href="#i-flame"/></svg><h3>Dashboard</h3><p>Rank materials, move the oxygen and airflow sliders, compare.</p></a><a class="tile" href="#ask"><svg class="ic" aria-hidden="true"><use href="#i-chat"/></svg><h3>Ask FlameWise</h3><p>Plain-English questions answered from the data, with sources.</p></a><a class="tile" href="#data"><svg class="ic" aria-hidden="true"><use href="#i-db"/></svg><h3>Your data</h3><p>Import real records as CSV and export the ranking.</p></a></div>
+</section>
+<section class="page" id="p-solution" hidden>
+ <article class="panel doc">
+ <h2><svg class="ic" aria-hidden="true"><use href="#i-doc"/></svg>Project solution</h2>
+ <h3>The problem</h3>
+ <p>NASA has spent decades burning things on purpose in orbit, and the results are scattered across papers, datasets and instrument logs. Engineers and mission planners can’t easily compare them or turn them into decisions. FlameWise is our attempt to close that gap.</p>
+ <h3>How we approached it</h3>
+ <ol>
+ <li><b>Collect.</b> Pull experiment records and metadata from NASA’s Physical Sciences Informatics repository and related publications. For each one we keep the same few fields: material, oxygen level, pressure, airflow, spread rate, and whether the flame went out.</li>
+ <li><b>Standardize.</b> Different experiments report things differently, so everything goes into common units in one table. Missing values stay missing, because filling them in would mean inventing data.</li>
+ <li><b>Add the AI layer.</b> A language model retrieves the matching records first and answers only from them. It writes summaries, answers plain-English questions, and warns when the evidence is thin or contradictory.</li>
+ <li><b>Rank in the open.</b> The risk score mixes spread rate, how easily the material ignites, and how low the oxygen can drop before the flame dies. The weights are visible and adjustable, so nobody has to trust a black box.</li>
+ <li><b>Show it.</b> A dashboard with a ranking, a condition explorer, a comparison view and a question box, built for busy engineers.</li>
+ </ol>
+ <h3>Why it’s useful</h3>
+ <p>It’s built around the questions people actually ask, like which fabric is safest at a given oxygen level, or how lowering airflow changes spread rate. Every answer shows its sources, so users can check instead of just trusting the AI.</p>
+ <h3>Where the prototype stands</h3>
+ <p>The ranking logic, charts, data import, export and AI answers all work. The numbers in the sample are placeholders, not NASA measurements. Real records can be loaded on the Your data page.</p>
+ <h3>Limitations</h3>
+ <ul><li>Microgravity experiments are small, so results may not predict a large fire.</li><li>Ranking quality depends on how much data exists for each material.</li><li>The AI helps explore the data. It doesn’t replace expert review or physical testing.</li></ul>
+ <h3>Next steps</h3>
+ <p>Load more datasets, validate the rankings with combustion researchers, add alerts for conditions near known flammability limits, and support offline use for deep-space missions.</p>
+ </article>
+</section>
+<section class="page" id="p-dashboard" hidden><div class="kpis" id="kpis"></div>
+<section class="panel" aria-labelledby="hc">
+ <h2 id="hc"><svg class="ic" aria-hidden="true"><use href="#i-flame"/></svg>Cabin conditions</h2>
+ <div class="controls">
+  <div class="orb">
+   <svg viewBox="0 0 120 120" role="img" aria-label="Flame size for the selected material"><defs><radialGradient id="og"><stop offset="0" style="stop-color:#fff;stop-opacity:.95"/><stop offset=".4" style="stop-color:var(--blue)"/><stop offset="1" style="stop-color:var(--blue);stop-opacity:0"/></radialGradient></defs><circle id="orb" cx="60" cy="60" r="20" fill="url(#og)" style="transition:r .3s"/></svg>
+   <p id="orbt"></p>
+  </div>
+  <label class="sl"><span>Oxygen <output id="oo"></output></span><input type="range" id="o2" min="15" max="40" step="1" value="21"></label>
+  <label class="sl"><span>Airflow <output id="fo"></output></span><input type="range" id="fl" min="0" max="30" step="1" value="8"></label>
+  <label class="sl"><span>Selected material</span><select id="sa" aria-label="Selected material"></select></label>
+ </div>
+ <div class="chips" id="presets" role="group" aria-label="Condition presets"></div>
+</section>
+
+<div class="grid two">
+ <section class="panel" aria-labelledby="hr">
+  <h2 id="hr"><svg class="ic" aria-hidden="true"><use href="#i-bars"/></svg>Risk ranking</h2>
+  <div class="scroll"><table><thead><tr><th>#</th><th>Material</th><th>Spread (cm/s)</th><th>Risk score</th><th>Evidence</th></tr></thead><tbody id="tb"></tbody></table></div>
+  <div class="wts" role="group" aria-label="Score weights">
+   <label class="sl"><span>Spread weight <output id="wso"></output></span><input type="range" id="ws" min="0" max="100" value="50"></label>
+   <label class="sl"><span>Ignition weight <output id="wio"></output></span><input type="range" id="wi" min="0" max="100" value="25"></label>
+   <label class="sl"><span>Low-oxygen weight <output id="wlo"></output></span><input type="range" id="wl" min="0" max="100" value="25"></label>
+  </div>
+ </section>
+
+ <section class="panel" aria-labelledby="he">
+  <h2 id="he"><svg class="ic" aria-hidden="true"><use href="#i-swap"/></svg>Explore and compare</h2>
+  <div class="pick">
+   <label>Material A<select id="pa"></select></label>
+   <label>Compare with<select id="pb"></select></label>
+  </div>
+  <div class="leg"><span><i></i><span id="la"></span></span><span id="lbw"><i class="b"></i><span id="lb"></span></span></div>
+  <svg class="ch" id="ch" viewBox="0 0 560 280" role="img" aria-label="Flame spread rate against oxygen level"></svg>
+  <div class="scroll"><table class="cmp"><tbody id="cm"></tbody></table></div>
+ </section>
+</div>
+</section>
+<section class="page" id="p-data" hidden>
+<section class="panel" aria-labelledby="hd">
+ <h2 id="hd"><svg class="ic" aria-hidden="true"><use href="#i-bars"/></svg>Your data</h2>
+ <p class="mu" id="dsrc"></p>
+ <p class="mu">Paste CSV or load a file with these columns: name, spread (cm/s at 21% oxygen), ignition ease (0 to 1), lowest oxygen that burns (%), runs. Keep commas out of names.</p>
+ <textarea id="csv" rows="6" aria-label="CSV data" placeholder="name,spread,ignition,lowest_o2,runs&#10;PMMA sheet,0.12,0.45,15,14"></textarea>
+ <div class="chips"><button class="btn pri" id="imp" type="button">Use this data</button><button class="btn" id="pick" type="button">Load file</button><input type="file" id="fi" accept=".csv,.txt" hidden><button class="btn" id="smp" type="button">Back to sample</button><button class="btn" id="exp" type="button">Export ranking</button></div>
+ <p id="imsg" class="mu" aria-live="polite" style="min-height:24px;margin:0"></p>
+ <details><summary>How the score works</summary><p class="mu">Risk is a weighted mix of three parts: spread rate under the current conditions (scaled against 2 cm/s), ignition ease, and how far below normal air the flame can still burn. If the flame goes out under the current conditions, the score is cut to 40%. Spread uses a simplified model: base spread times a square-root oxygen term times an airflow factor that peaks near 8 cm/s. Evidence runs do not change the score, but fewer than 6 runs earns a Thin tag. This ranks materials against each other and is not a physics simulation.</p></details>
+</section>
+</section>
+<section class="page" id="p-ask" hidden>
+<section class="panel" aria-labelledby="hk">
+ <h2 id="hk"><svg class="ic" aria-hidden="true"><use href="#i-chat"/></svg>Ask FlameWise</h2>
+ <form class="ask" id="af" role="search"><input type="text" id="q" aria-label="Your question" placeholder="Which material is safest right now?"><button class="btn pri" type="submit"><svg class="ic" aria-hidden="true"><use href="#i-send"/></svg>Ask</button></form>
+ <div class="chips" id="chips"></div>
+ <p class="mu" id="aist" style="font-size:14px;margin:0 0 10px"></p>
+ <p id="ans" aria-live="polite">Pick a question, or type your own. Answers come from the sample records and cite their source IDs.</p>
+</section>
+</section>
+</main>
+</div>
+<script>
+let M=[
+{id:'S-01',n:'PMMA sheet',b:.12,i:.45,l:15,e:14},
+{id:'S-02',n:'Cotton-fiberglass fabric',b:.50,i:.60,l:16,e:9},
+{id:'S-03',n:'Nomex fabric',b:.08,i:.25,l:19,e:7},
+{id:'S-04',n:'FEP wire insulation',b:.06,i:.15,l:18,e:6},
+{id:'S-05',n:'Polyethylene foam',b:.70,i:.70,l:17,e:5},
+{id:'S-06',n:'Filter paper',b:.60,i:.65,l:15,e:6},
+{id:'S-07',n:'Polyurethane foam',b:.90,i:.80,l:16,e:4},
+{id:'S-08',n:'Kapton film',b:.04,i:.10,l:18,e:8}];
+const $=s=>document.querySelector(s),cl=(v,a=0,b=1)=>Math.min(b,Math.max(a,v));
+const ff=f=>Math.max(.1,(f/8)*Math.exp(1-f/8));
+const sp=(m,o,f)=>o<=m.l?0:m.b*Math.sqrt((o-m.l)/(21-m.l))*ff(f);
+const S={o:21,f:8,ws:50,wi:25,wl:25,a:1,b:2};
+function risk(m){const s=sp(m,S.o,S.f),t=(S.ws+S.wi+S.wl)||1;
+ const r=(S.ws*cl(s/2)+S.wi*m.i+S.wl*cl((21-m.l)/6))/t*100;return{m,s,r:s>0?r:r*.4}}
+const rank=()=>M.map(risk).sort((x,y)=>y.r-x.r);
+const opts=(el,none)=>{el.innerHTML=(none?'<option value="-1">None</option>':'')+M.map((m,i)=>`<option value="${i}">${m.n}</option>`).join('')};
+opts($('#sa'));opts($('#pa'));opts($('#pb'),1);
+function table(){const R=rank();$('#tb').innerHTML=R.map((x,k)=>{const i=M.indexOf(x.m);
+ return `<tr class="${i===S.a?'sel':''}"><td class="n">${k+1}</td><td><button class="rowbtn" type="button" data-i="${i}">${x.m.n}</button></td>
+ <td>${x.s>0?x.s.toFixed(2):'<span class="tag">Goes out</span>'}</td>
+ <td><span class="bar"><i style="width:${x.r.toFixed(0)}%"></i></span>${x.r.toFixed(0)}</td>
+ <td>${x.m.e} runs${x.m.e<6?'<span class="tag w">Thin</span>':''}</td></tr>`}).join('')}
+function chart(){const L=[[S.a,'a']];if(S.b>=0)L.push([S.b,'b']);
+ const xs=[];for(let o=15;o<=40;o+=.5)xs.push(o);
+ const ys=L.map(([i])=>xs.map(o=>sp(M[i],o,S.f)));
+ const mx=Math.max(.5,...ys.flat())*1.08,X=o=>52+(o-15)/25*492,Y=v=>244-v/mx*230;
+ let g='';
+ for(let k=0;k<=4;k++){const v=mx*k/4;g+=`<line class="gl" x1="52" x2="544" y1="${Y(v)}" y2="${Y(v)}"/><text class="tx" x="44" y="${Y(v)+4}" text-anchor="end">${v.toFixed(1)}</text>`}
+ for(let o=15;o<=40;o+=5)g+=`<text class="tx" x="${X(o)}" y="264" text-anchor="middle">${o}%</text>`;
+ g+=`<line class="gl d" x1="${X(21)}" x2="${X(21)}" y1="14" y2="244"/><text class="tx" x="${X(21)+4}" y="26">Cabin air 21%</text>`;
+ L.forEach(([i,c],k)=>g+=`<polyline class="ln ${c}" points="${xs.map((o,j)=>X(o).toFixed(1)+','+Y(ys[k][j]).toFixed(1)).join(' ')}"/>`);
+ g+=`<line class="mk" x1="${X(S.o)}" x2="${X(S.o)}" y1="14" y2="244"/><text class="tx" x="8" y="130" transform="rotate(-90 8 130)" text-anchor="middle">Spread rate (cm/s)</text>`;
+ $('#ch').innerHTML=g;
+ $('#la').textContent=M[S.a].n;$('#lbw').style.display=S.b>=0?'':'none';if(S.b>=0)$('#lb').textContent=M[S.b].n}
+function compare(){const ids=[S.a];if(S.b>=0)ids.push(S.b);
+ const rows=[['Spread now (cm/s)',m=>{const s=sp(m,S.o,S.f);return s>0?s.toFixed(2):'Goes out'}],
+ ['Ignition ease (0 to 1)',m=>m.i.toFixed(2)],['Lowest oxygen that burns',m=>m.l+'%'],['Evidence',m=>m.e+' runs'],
+ ['Risk score',m=>risk(m).r.toFixed(0)]];
+ $('#cm').innerHTML=`<tr><td></td>${ids.map(i=>`<th>${M[i].n}</th>`).join('')}</tr>`+rows.map(([t,f])=>`<tr><td>${t}</td>${ids.map(i=>`<td>${f(M[i])}</td>`).join('')}</tr>`).join('')}
+function orb(){const m=M[S.a],s=sp(m,S.o,S.f),c=$('#orb');
+ if(s>0){c.setAttribute('r',(18+cl(s/1.5)*40).toFixed(0));c.setAttribute('fill','url(#og)');c.removeAttribute('stroke');c.removeAttribute('stroke-dasharray');
+  $('#orbt').innerHTML=`<b>${s.toFixed(2)} cm/s</b>${m.n} keeps burning`}
+ else{c.setAttribute('r',12);c.setAttribute('fill','none');c.setAttribute('stroke','var(--mu)');c.setAttribute('stroke-dasharray','4 4');
+  $('#orbt').innerHTML=`<b>Flame goes out</b>${m.n} needs more than ${m.l}% oxygen`}}
+function update(){kp();src();$('#oo').textContent=S.o+'%';$('#fo').textContent=S.f+' cm/s';
+ $('#wso').textContent=S.ws;$('#wio').textContent=S.wi;$('#wlo').textContent=S.wl;
+ $('#sa').value=$('#pa').value=S.a;$('#pb').value=S.b;table();chart();compare();orb()}
+$('#o2').oninput=e=>{S.o=+e.target.value;update()};
+$('#fl').oninput=e=>{S.f=+e.target.value;update()};
+['ws','wi','wl'].forEach(k=>$('#'+k).oninput=e=>{S[k]=+e.target.value;update()});
+$('#sa').onchange=e=>{S.a=+e.target.value;update()};
+$('#pa').onchange=e=>{S.a=+e.target.value;update()};
+$('#pb').onchange=e=>{S.b=+e.target.value;update()};
+$('#tb').onclick=e=>{const b=e.target.closest('.rowbtn');if(b){S.a=+b.dataset.i;update()}};
+const Q=['Which material is safest right now?','Which is riskiest?','Compare the two fabrics','How does oxygen change things?','What does airflow do?','Are cool flames covered?'];
+$('#chips').innerHTML=Q.map(q=>`<button class="btn" type="button">${q}</button>`).join('');
+function ask(q){q=q.toLowerCase();if(/fabric|cloth|nomex|cotton|suit/.test(q)){const F=M.filter(m=>/fabric|nomex|cotton|cloth|suit/i.test(m.n)).map(risk);return F.length?`At ${S.o}% oxygen and ${S.f} cm/s airflow, `+F.map(x=>`${x.m.n} spreads at ${x.s.toFixed(2)} cm/s (score ${x.r.toFixed(0)}) [${x.m.id}]`).join(' and ')+'.':'No fabrics in this dataset.'}const R=rank(),w=R[0],l=R[R.length-1],at=`At ${S.o}% oxygen and ${S.f} cm/s airflow`;
+ if(/safe|lowest|least/.test(q))return `${at}, ${l.m.n} ranks lowest risk with a score of ${l.r.toFixed(0)}, based on ${l.m.e} runs [${l.m.id}].`;
+ if(/worst|risk|danger|highest|most/.test(q))return `${at}, ${w.m.n} ranks highest with a score of ${w.r.toFixed(0)} and a spread of ${w.s.toFixed(2)} cm/s [${w.m.id}]. Only ${w.m.e} runs back it up${w.m.e<6?', so treat it as thin evidence':''}.`;
+ if(/fabric|cloth|nomex|cotton|suit/.test(q)){const a=risk(M[1]),b=risk(M[2]);return `${at}, cotton-fiberglass spreads at ${a.s.toFixed(2)} cm/s (score ${a.r.toFixed(0)}) [S-02] and Nomex at ${b.s.toFixed(2)} cm/s (score ${b.r.toFixed(0)}) [S-03].`}
+ if(/oxygen|o2|34/.test(q))return `More oxygen speeds up spread for every material here, and each one has a floor below which the flame dies (15% to 19% in this sample). Move the oxygen slider and watch the ranking reorder [S-01 to S-08].`;
+ if(/flow|air|vent|fan/.test(q))return `In this model spread peaks at a middle airflow (about 8 cm/s) and drops at both ends. With almost no airflow the flame starves, so ventilation settings belong in any fire plan [S-01 to S-08].`;
+ if(/cool/.test(q))return `Not yet. Cool flames aren't modeled in this prototype. They'd need their own records and a flag in the ranking.`;
+ return `I can answer from the sample records about ranking, oxygen, airflow and fabrics. Try one of the suggestions above.`}
+
+$('#af').onsubmit=e=>{e.preventDefault();go($('#q').value)};
+$('#chips').onclick=e=>{const b=e.target.closest('button');if(b){$('#q').value=b.textContent;go(b.textContent)}};
+const mq=matchMedia('(prefers-color-scheme: dark)');
+function themeUI(){const d=(document.documentElement.dataset.theme||'dark')==='dark';
+ $('#tic').setAttribute('href',d?'#i-sun':'#i-moon');$('#tlab').textContent=d?'Light mode':'Dark mode'}
+$('#theme').onclick=()=>{const d=(document.documentElement.dataset.theme||'dark')==='dark';
+ document.documentElement.dataset.theme=d?'light':'dark';themeUI()};
+
+let DL=null,SM=null,isSample=true,busy=false;const SAMPLE=M;
+const aiStat=()=>{$('#aist').textContent=SM?'Answers come from Claude, working from the table above.':'Built-in answers only. The AI assistant is not available in this view.'};aiStat();
+if(typeof claude!=='undefined'&&claude.use){claude.use('sample').then(x=>{SM=x;aiStat()}).catch(()=>{});claude.use('downloads').then(x=>{DL=x}).catch(()=>{})}
+async function go(q){q=(q||'').trim();const out=$('#ans');if(!q||busy)return;
+ if(!SM){out.textContent=ask(q);return}
+ busy=true;out.textContent='Thinking…';
+ const rows=rank().map(x=>({id:x.m.id,material:x.m.n,spread_cm_per_s:+x.s.toFixed(3),ignition_ease_0_to_1:x.m.i,lowest_oxygen_that_burns_pct:x.m.l,evidence_runs:x.m.e,risk_score:Math.round(x.r)}));
+ const p=`You are FlameWise, a fire safety analyst for crewed spaceflight. Answer the question using ONLY the table below. Cite material ids in square brackets. Mention when a material has fewer than 6 evidence runs because the evidence is thin. If the table cannot answer, say so plainly and do not invent NASA facts or numbers. Keep it under 120 words, in plain language.\n\nData source: ${isSample?'placeholder sample numbers, not real NASA measurements. Say so briefly.':'data imported by the user.'}\nCurrent cabin conditions: oxygen ${S.o}%, airflow ${S.f} cm/s.\nRanking, highest risk first: ${JSON.stringify(rows)}\n\nQuestion: ${q}`;
+ try{const r=await SM(p,{cache:false,modelTier:'default',onText:u=>{out.textContent=u.text}});out.textContent=r.text}
+ catch(e){if(e&&e.code==='not_granted'){SM=null;aiStat()}out.textContent=ask(q)}
+ busy=false}
+function kp(){const R=rank(),w=R[0],l=R[R.length-1],b=R.filter(x=>x.s>0).length,th=R.filter(x=>x.m.e<6).length;
+ $('#kpis').innerHTML=[['Highest risk',w.m.n+' ('+w.r.toFixed(0)+')'],['Lowest risk',l.m.n+' ('+l.r.toFixed(0)+')'],['Still burning',b+' of '+R.length],['Thin evidence',th+' of '+R.length]].map(([a,v])=>`<div class="kpi"><span>${a}</span><b>${v}</b></div>`).join('')}
+function src(){$('#nt').hidden=!isSample||!['dashboard','ask','data'].includes(cur);$('#dsrc').textContent=isSample?'Using the built-in sample (placeholder numbers).':'Using your data: '+M.length+' materials.'}
+const PR=[['Station air',21,8],['High-oxygen cabin',34,8],['Thin air',17,8],['Still air',21,0],['Strong flow',21,25]];
+$('#presets').innerHTML=PR.map((p,i)=>`<button class="btn" type="button" data-i="${i}">${p[0]} (${p[1]}%, ${p[2]} cm/s)</button>`).join('');
+$('#presets').onclick=e=>{const b=e.target.closest('button');if(!b)return;const p=PR[+b.dataset.i];S.o=p[1];S.f=p[2];$('#o2').value=p[1];$('#fl').value=p[2];update()};
+function parseCSV(t){const rows=t.trim().split(/\r?\n/).map(r=>r.split(/[,\t;]/).map(c=>c.trim()));if(rows.length<2)throw Error('Add a header row and at least one material.');
+ const h=rows[0].map(x=>x.toLowerCase()),ix=(re,d)=>{const k=h.findIndex(x=>re.test(x));return k<0?d:k};
+ const c={n:ix(/name|material/,0),b:ix(/spread|rate/,1),i:ix(/ign/,2),l:ix(/low|limit|o2|oxy/,3),e:ix(/run|evid|count/,4)};
+ const out=rows.slice(1).filter(r=>r.length>1&&r[c.n]).map((r,k)=>{const o={id:'U-'+String(k+1).padStart(2,'0'),n:r[c.n].replace(/[<>&"]/g,''),b:+r[c.b],i:+r[c.i],l:+r[c.l],e:Math.round(+r[c.e])};
+  if(![o.b,o.i,o.l,o.e].every(Number.isFinite))throw Error('Row '+(k+2)+' has a value that is not a number.');
+  o.i=cl(o.i);o.l=cl(o.l,5,20.5);o.b=Math.max(0,o.b);o.e=Math.max(0,o.e);return o});
+ if(!out.length)throw Error('No usable rows found.');return out.slice(0,40)}
+const msg=t=>{$('#imsg').textContent=t};
+function useData(a,sm){M=a;isSample=sm;S.a=0;S.b=a.length>1?1:-1;opts($('#sa'));opts($('#pa'));opts($('#pb'),1);update()}
+$('#imp').onclick=()=>{try{useData(parseCSV($('#csv').value),false);msg('Loaded '+M.length+' materials.')}catch(e){msg(e.message)}};
+$('#pick').onclick=()=>$('#fi').click();
+$('#fi').onchange=e=>{const f=e.target.files[0];if(!f)return;if(f.size>1e6){msg('That file is too large. Keep it under 1 MB.');return}const r=new FileReader();r.onload=()=>{$('#csv').value=r.result;try{useData(parseCSV(r.result),false);msg('Loaded '+M.length+' materials from '+f.name+'.')}catch(x){msg(x.message)}};r.readAsText(f)};
+$('#smp').onclick=()=>{useData(SAMPLE,true);msg('Back to the sample data.')};
+$('#exp').onclick=async()=>{const R=rank(),q=v=>'"'+String(v).replace(/"/g,'""')+'"';
+ const csv=['rank,id,material,spread_cm_per_s,ignition_ease,lowest_oxygen_pct,evidence_runs,risk_score,oxygen_pct,airflow_cm_per_s'].concat(R.map((x,k)=>[k+1,x.m.id,q(x.m.n),x.s.toFixed(3),x.m.i,x.m.l,x.m.e,x.r.toFixed(0),S.o,S.f].join(','))).join('\n');
+ if(!DL){$('#csv').value=csv;msg('Saving is not available here, so the ranking is in the box above for copying.');return}
+ try{await DL.save({filename:'flamewise-ranking.csv',data:csv});msg('Ranking ready to save.')}catch(e){msg(e&&e.code==='declined'?'Save cancelled.':'Could not save the file.')}};
+const cv=$('#space'),cg=cv.getContext('2d'),reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const stars=Array.from({length:260},()=>({x:(Math.random()-.5)*3000,y:(Math.random()-.5)*2000,z:Math.random()*1400+60}));
+const pts=[];for(let i=1;i<22;i++){const a=Math.PI*i/22;for(let j=0;j<40;j++){const b=6.2832*j/40;pts.push([Math.cos(a),Math.sin(a)*Math.cos(b),Math.sin(a)*Math.sin(b)])}}
+let W,H,px=0,py=0,tx=0,ty=0,t=0;
+function size(){const d=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;cv.width=W*d;cv.height=H*d;cg.setTransform(d,0,0,d,0,0)}
+addEventListener('resize',size);size();
+if(!reduce)addEventListener('pointermove',e=>{tx=e.clientX/innerWidth-.5;ty=e.clientY/innerHeight-.5});
+function draw(){px+=(tx-px)*.05;py+=(ty-py)*.05;if(!reduce)t+=.003;cg.clearRect(0,0,W,H);
+ const d=(document.documentElement.dataset.theme||'dark')==='dark',sc=d?'205,228,255':'30,50,110',ac=d?'77,240,255':'11,107,168',am=d?'255,180,84':'154,82,0',f=Math.min(W,H)*.9;
+ for(const s of stars){if(!reduce)s.z-=.5;if(s.z<30){s.z=1450;s.x=(Math.random()-.5)*3000;s.y=(Math.random()-.5)*2000}
+  const k=f/s.z,x=W/2+(s.x-px*260)*k,y=H/2+(s.y-py*260)*k;if(x<0||x>W||y<0||y>H)continue;
+  cg.fillStyle=`rgba(${sc},${Math.min(1,(1450-s.z)/500)*(d?.9:.5)})`;const r=Math.max(.6,2*k);cg.fillRect(x,y,r,r)}
+ const R=Math.min(W,H)*.34,cx=W*.84-px*70,cy=H*.8-py*50;cg.globalAlpha=d?1:.4;
+ let q=cg.createRadialGradient(cx,cy,R*.6,cx,cy,R*1.7);q.addColorStop(0,`rgba(${ac},.22)`);q.addColorStop(1,`rgba(${ac},0)`);cg.fillStyle=q;cg.beginPath();cg.arc(cx,cy,R*1.7,0,7);cg.fill();
+ q=cg.createRadialGradient(cx-R*.3,cy-R*.3,R*.1,cx,cy,R);q.addColorStop(0,d?'#1f3f93':'#9bb6ee');q.addColorStop(1,d?'#050a24':'#5a74b8');cg.fillStyle=q;cg.beginPath();cg.arc(cx,cy,R,0,7);cg.fill();
+ const cs=Math.cos(t),sn=Math.sin(t),T=.4,ct=Math.cos(T),st=Math.sin(T);
+ for(const p of pts){const x=p[0]*cs+p[2]*sn,z=-p[0]*sn+p[2]*cs,y=p[1]*ct-z*st,zz=p[1]*st+z*ct;if(zz<0)continue;cg.fillStyle=`rgba(${ac},${.15+.6*zz})`;cg.fillRect(cx+x*R,cy+y*R,2,2)}
+ const ring=a=>{const x=Math.cos(a)*1.55,z=Math.sin(a)*1.55;return[x,-z*st,z*ct]};
+ for(let a=0;a<6.283;a+=.025){const[x,y,z]=ring(a);if(z<0&&Math.hypot(x,y)<1)continue;cg.fillStyle=`rgba(${am},${z>0?.65:.3})`;cg.fillRect(cx+x*R,cy+y*R,2,2)}
+ const[sx,sy,sz]=ring(t*4);if(!(sz<0&&Math.hypot(sx,sy)<1)){cg.shadowColor=`rgb(${am})`;cg.shadowBlur=18;cg.fillStyle=`rgb(${am})`;cg.beginPath();cg.arc(cx+sx*R,cy+sy*R,7,0,7);cg.fill();cg.shadowBlur=0}
+ cg.globalAlpha=1;requestAnimationFrame(draw)}
+draw();
+
+let cur='overview';
+const PG=['overview','solution','dashboard','ask','data'];
+function route(){const h=(location.hash||'').slice(1);cur=PG.includes(h)?h:'overview';
+ PG.forEach(p=>{$('#p-'+p).hidden=p!==cur});
+ document.querySelectorAll('#nav a').forEach(a=>{if(a.dataset.p===cur)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
+ src();scrollTo(0,0)}
+addEventListener('hashchange',route);
+themeUI();update();route();
+</script>
+</body>
+</html>
